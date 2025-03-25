@@ -1,0 +1,7 @@
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/teamitaka_icon.png"
+  min_sdk_android: 21  # Android 최소 SDK 버전
+  adaptive_icon_background: "#FF5733"  # Android Adaptive Icon 배경색
+  adaptive_icon_foreground: "assets/teamitaka_icon.png"
