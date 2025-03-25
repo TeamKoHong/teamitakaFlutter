@@ -1,5 +1,4 @@
 // lib/widgets/bottom_navigation.dart
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -27,11 +26,12 @@ class BottomNavigation extends StatelessWidget {
           ),
         ],
       ),
-      child: TabBar(
+      child: BottomNavigationBar(
+        currentIndex: currentIndex,
         onTap: onTap,
-        labelColor: const Color(0xFFFF5733),
-        unselectedLabelColor: Colors.grey,
-        labelStyle: GoogleFonts.notoSansKr(
+        selectedItemColor: const Color(0xFFFF5733),
+        unselectedItemColor: Colors.grey,
+        selectedLabelStyle: GoogleFonts.notoSansKr(
           fontSize: 14,
           fontWeight: FontWeight.bold,
         ),
@@ -39,29 +39,24 @@ class BottomNavigation extends StatelessWidget {
           fontSize: 12,
           fontWeight: FontWeight.normal,
         ),
-        indicator: const UnderlineTabIndicator(
-          borderSide: BorderSide(
-            color: Colors.black,
-            width: 2,
-          ),
-          insets: EdgeInsets.symmetric(horizontal: 16),
-        ),
-        tabs: const [
-          Tab(
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
             icon: Icon(Icons.home, size: 24),
-            text: '메인',
+            label: '메인',
           ),
-          Tab(
+          BottomNavigationBarItem(
             icon: Icon(Icons.description, size: 24),
-            text: '프로젝트 관리',
+            label: '프로젝트 관리',
           ),
-          Tab(
+          BottomNavigationBarItem(
             icon: Icon(Icons.share, size: 24),
-            text: '팀매칭',
+            label: '팀매칭',
           ),
-          Tab(
+          BottomNavigationBarItem(
             icon: Icon(Icons.person, size: 24),
-            text: '프로필',
+            label: '프로필',
           ),
         ],
       ),

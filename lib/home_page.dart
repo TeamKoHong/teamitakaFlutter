@@ -2,12 +2,48 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dotted_line/dotted_line.dart';
+import 'widgets/bottom_navigation.dart'; // BottomNavigation 위젯 임포트
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  // 체크박스 상태 관리
+  bool isTask1Checked = false;
+  bool isTask2Checked = false;
+
+  // 네비게이션 바의 현재 인덱스 관리
+  int _currentIndex = 0;
+
+  // 탭 전환 시 호출되는 메서드
+  void _onTabTapped(int index) {
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
+  // 각 탭에 해당하는 화면을 반환하는 메서드
+  Widget _buildBody() {
+    switch (_currentIndex) {
+      case 0:
+        return _buildHomeContent(); // 메인 탭 (기존 콘텐츠)
+      case 1:
+        return const Center(child: Text('프로젝트 관리 화면')); // 플레이스홀더
+      case 2:
+        return const Center(child: Text('팀매칭 화면')); // 플레이스홀더
+      case 3:
+        return const Center(child: Text('프로필 화면')); // 플레이스홀더
+      default:
+        return _buildHomeContent();
+    }
+  }
+
+  // 기존 홈 콘텐츠를 별도의 메서드로 분리
+  Widget _buildHomeContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
@@ -29,24 +65,24 @@ class HomePage extends StatelessWidget {
                   Row(
                     children: [
                       // (A) 요가 캐릭터
-                      Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFFFF5733).withOpacity(0.2),
+                      Image.asset(
+                        'assets/images/profile.png',
+                        width: 80, // 고정 크기 설정
+                        height: 80, // 고정 크기 설정
+                        fit: BoxFit.contain, // 이미지 잘림 방지
+                        filterQuality: FilterQuality.high, // 고품질 필터링
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: 80,
+                            height: 80,
+                            color: Colors.grey[200],
+                            child: const Icon(
+                              Icons.person,
+                              color: Colors.grey,
+                              size: 40,
                             ),
-                          ),
-                          Image.asset(
-                            'assets/images/profile.png',
-                            width: 48,
-                            height: 48,
-                            fit: BoxFit.cover,
-                          ),
-                        ],
+                          );
+                        },
                       ),
                       const SizedBox(width: 16),
 
@@ -100,10 +136,10 @@ class HomePage extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: 8),
-                                OutlinedButton(
+                                ElevatedButton(
                                   onPressed: () {},
-                                  style: OutlinedButton.styleFrom(
-                                    side: const BorderSide(color: Colors.grey),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFF5733),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20),
                                     ),
@@ -115,7 +151,7 @@ class HomePage extends StatelessWidget {
                                   child: Text(
                                     'UXUI',
                                     style: GoogleFonts.notoSansKr(
-                                      color: Colors.grey,
+                                      color: Colors.white,
                                       fontSize: 14,
                                     ),
                                   ),
@@ -183,21 +219,44 @@ class HomePage extends StatelessWidget {
             child: Column(
               children: [
                 // 체크박스 1
-                CheckboxListTile(
-                  // (A) 원형
-                  shape: const CircleBorder(),
-                  // (B) 오른쪽 정렬
-                  controlAffinity: ListTileControlAffinity.trailing,
-                  title: Text(
-                    '지표 엑셀에 정리하기',
-                    style: GoogleFonts.notoSansKr(fontSize: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
                   ),
-                  value: false,
-                  onChanged: (bool? newValue) {
-                    // TODO
-                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 텍스트
+                      Expanded(
+                        child: Text(
+                          '지표 엑셀에 정리하기',
+                          style: GoogleFonts.notoSansKr(fontSize: 16),
+                        ),
+                      ),
+                      // 체크박스
+                      Checkbox(
+                        value: isTask1Checked,
+                        onChanged: (bool? newValue) {
+                          setState(() {
+                            isTask1Checked = newValue ?? false;
+                          });
+                        },
+                        shape: const CircleBorder(),
+                        activeColor: const Color(0xFFFF5733), // 체크 시 색상
+                        checkColor: Colors.white, // 체크 표시 색상
+                        side: const BorderSide(
+                          color: Colors.grey, // 체크박스 테두리 색상
+                          width: 1.5,
+                        ),
+                        visualDensity: VisualDensity.compact, // 크기 조정
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap, // 탭 영역 축소
+                      ),
+                    ],
+                  ),
                 ),
-                // dotted line
+                // 점선
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: DottedLine(
@@ -209,17 +268,42 @@ class HomePage extends StatelessWidget {
                   ),
                 ),
                 // 체크박스 2
-                CheckboxListTile(
-                  shape: const CircleBorder(),
-                  controlAffinity: ListTileControlAffinity.trailing,
-                  title: Text(
-                    '자료 조사 및 분석하기',
-                    style: GoogleFonts.notoSansKr(fontSize: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 12.0,
                   ),
-                  value: false,
-                  onChanged: (bool? newValue) {
-                    // TODO
-                  },
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // 텍스트
+                      Expanded(
+                        child: Text(
+                          '자료 조사 및 분석하기',
+                          style: GoogleFonts.notoSansKr(fontSize: 16),
+                        ),
+                      ),
+                      // 체크박스
+                      Checkbox(
+                        value: isTask2Checked,
+                        onChanged: (bool? newValue) {
+                          setState(() {
+                            isTask2Checked = newValue ?? false;
+                          });
+                        },
+                        shape: const CircleBorder(),
+                        activeColor: const Color(0xFFFF5733), // 체크 시 색상
+                        checkColor: Colors.white, // 체크 표시 색상
+                        side: const BorderSide(
+                          color: Colors.grey, // 체크박스 테두리 색상
+                          width: 1.5,
+                        ),
+                        visualDensity: VisualDensity.compact, // 크기 조정
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap, // 탭 영역 축소
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -238,13 +322,6 @@ class HomePage extends StatelessWidget {
                 style: GoogleFonts.notoSansKr(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                '2차례 진행',
-                style: GoogleFonts.notoSansKr(
-                  fontSize: 14,
-                  color: Colors.grey,
                 ),
               ),
             ],
@@ -273,8 +350,52 @@ class HomePage extends StatelessWidget {
               fontWeight: FontWeight.bold,
             ),
           ),
-          // TODO: 추가 컨텐츠
+          const SizedBox(height: 8),
+          // ListView를 Column으로 대체하여 중첩 스크롤 문제 해결
+          Column(
+            children: [
+              _buildRecruitmentCard(
+                imagePath: 'assets/images/sample01.png',
+                title: '김혜현 교수님 ] 비주얼 마케터 디자인 팀 프로젝트 인원 구합니다!',
+                tag: '얼리버드',
+                views: 302,
+                comments: 76,
+                date: '25.03.24',
+              ),
+              const SizedBox(height: 12),
+              _buildRecruitmentCard(
+                imagePath: 'assets/images/sample02.png',
+                title: '김건상 교수님 ] 기초 디자인 테크닉 (2) 함께 스케치 디벨로퍼 구합니다. 스터디...',
+                tag: '시라소니',
+                views: 214,
+                comments: 93,
+                date: '25.03.27',
+              ),
+              const SizedBox(height: 12),
+              _buildRecruitmentCard(
+                imagePath: 'assets/images/sample03.png',
+                title: '하연슬 교수님 ] 지도하에 공모전 함께 할 팀들러 구합니다!!',
+                tag: '뱁새',
+                views: 182,
+                comments: 19,
+                date: '25.03.12',
+              ),
+              const SizedBox(height: 80), // 네비게이션 바와의 간격 확보
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.grey[100], // 배경색 설정
+      body: _buildBody(),
+      bottomNavigationBar: BottomNavigation(
+        currentIndex: _currentIndex,
+        onTap: _onTabTapped,
       ),
     );
   }
@@ -366,6 +487,188 @@ class HomePage extends StatelessWidget {
       radius: 10,
       backgroundColor: Colors.grey[200],
       child: const Icon(Icons.person, size: 14, color: Colors.grey),
+    );
+  }
+
+  Widget _buildRecruitmentCard({
+    required String imagePath,
+    required String title,
+    required String tag,
+    required int views,
+    required int comments,
+    required String date,
+  }) {
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      shadowColor: Colors.black.withOpacity(0.1),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(6.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 이미지 + "BEST" 라벨
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.asset(
+                          imagePath,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 60,
+                              height: 60,
+                              color: Colors.grey[200],
+                              child: const Icon(
+                                Icons.image,
+                                color: Colors.grey,
+                                size: 30,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                      // "BEST" 라벨 (좌측 상단)
+                      Positioned(
+                        left: 4,
+                        top: 4,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 4,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.blue,
+                            borderRadius: BorderRadius.circular(4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 2,
+                                offset: const Offset(1, 1),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'BEST',
+                            style: GoogleFonts.notoSansKr(
+                              fontSize: 10,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+
+                  // 텍스트 + 태그/조회수/댓글/날짜
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 제목
+                        Text(
+                          title,
+                          style: GoogleFonts.notoSansKr(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            height: 1.2,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        // 태그 + 조회수 + 댓글 + 날짜
+                        Row(
+                          children: [
+                            // 태그
+                            Text(
+                              tag,
+                              style: GoogleFonts.notoSansKr(
+                                fontSize: 14,
+                                color: Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // 조회수 (눈 이모지)
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.visibility,
+                                  size: 14,
+                                  color: Colors.grey[500],
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '$views',
+                                  style: GoogleFonts.notoSansKr(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(width: 8),
+                            // 댓글
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.message_outlined,
+                                  size: 14,
+                                  color: Colors.grey[500],
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '$comments',
+                                  style: GoogleFonts.notoSansKr(
+                                    fontSize: 14,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(), // 날짜를 우측으로 밀어냄
+                            // 날짜
+                            Text(
+                              date,
+                              style: GoogleFonts.notoSansKr(
+                                fontSize: 12,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
