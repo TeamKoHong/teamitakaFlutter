@@ -1,8 +1,14 @@
-// lib/home_page.dart
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dotted_line/dotted_line.dart';
-import 'widgets/bottom_navigation.dart'; // BottomNavigation 위젯 임포트
+import 'package:http/http.dart' as http;
+import 'package:photo_manager/photo_manager.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
+import 'package:teamitaka_flutter/profile_page.dart';
+import 'widgets/bottom_navigation.dart';
+import 'dart:io';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,46 +18,176 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  // 체크박스 상태 관리
   bool isTask1Checked = false;
   bool isTask2Checked = false;
-
-  // 네비게이션 바의 현재 인덱스 관리
   int _currentIndex = 0;
+  bool isSaving = false;
 
-  // 탭 전환 시 호출되는 메서드
   void _onTabTapped(int index) {
     setState(() {
       _currentIndex = index;
     });
   }
 
-  // 각 탭에 해당하는 화면을 반환하는 메서드
+  Future<bool> _requestPermission() async {
+    try {
+      if (Platform.isAndroid) {
+        final deviceInfo = DeviceInfoPlugin();
+        final androidInfo = await deviceInfo.androidInfo;
+        final sdkVersion = androidInfo.version.sdkInt;
+
+        if (sdkVersion >= 33) {
+          // Android 13 이상
+          final status = await Permission.photos.request();
+          if (status.isGranted) {
+            print("Android 13+: Photos permission granted");
+            return true;
+          }
+          if (status.isPermanentlyDenied) {
+            print("Android 13+: Photos permission permanently denied");
+            await openAppSettings();
+            return false;
+          }
+          print("Android 13+: Photos permission denied");
+          return false;
+        } else {
+          // Android 12 이하
+          final storageStatus = await Permission.storage.request();
+          if (storageStatus.isGranted) {
+            print("Android 12-: Storage permission granted");
+            return true;
+          }
+          if (storageStatus.isPermanentlyDenied) {
+            print("Android 12-: Storage permission permanently denied");
+            await openAppSettings();
+            return false;
+          }
+          print("Android 12-: Storage permission denied");
+          return false;
+        }
+      } else if (Platform.isIOS) {
+        final permissionStatus = await PhotoManager.requestPermissionExtend();
+        print("iOS: PhotoManager permission status: $permissionStatus");
+        if (permissionStatus == PermissionState.authorized) {
+          print("iOS: PhotoManager permission granted");
+          return true;
+        }
+        if (permissionStatus == PermissionState.limited) {
+          print("iOS: PhotoManager permission limited");
+          return true; // 제한된 접근도 허용
+        }
+        if (permissionStatus == PermissionState.denied) {
+          print("iOS: PhotoManager permission denied");
+          await openAppSettings();
+          return false;
+        }
+        print("iOS: PhotoManager permission status unknown");
+        return false;
+      }
+      return false;
+    } catch (e) {
+      print("Permission request error: $e");
+      return false;
+    }
+  }
+
+  Future<void> _saveNetworkImage() async {
+    setState(() => isSaving = true);
+
+    try {
+      final hasPermission = await _requestPermission();
+      if (!hasPermission) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('저장 권한이 필요합니다. 설정에서 권한을 허용해주세요.')),
+        );
+        setState(() => isSaving = false);
+        return;
+      }
+
+      const imageUrl = 'https://picsum.photos/200/300';
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode != 200) {
+        throw Exception("Failed to download image: ${response.statusCode}");
+      }
+
+      final imageBytes = response.bodyBytes;
+      final filename =
+          'network_image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final result = await PhotoManager.editor.saveImage(
+        imageBytes,
+        title: filename,
+        filename: filename,
+      );
+
+      if (result != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미지가 갤러리에 저장되었습니다!')),
+        );
+      } else {
+        throw Exception("PhotoManager failed to save image");
+      }
+    } catch (e) {
+      print("Save network image error: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('이미지 저장 실패: $e')),
+      );
+    } finally {
+      setState(() => isSaving = false);
+    }
+  }
+
   Widget _buildBody() {
     switch (_currentIndex) {
       case 0:
-        return _buildHomeContent(); // 메인 탭 (기존 콘텐츠)
+        return _buildHomeContent();
       case 1:
-        return const Center(child: Text('프로젝트 관리 화면')); // 플레이스홀더
+        return const Center(child: Text('프로젝트 관리 화면'));
       case 2:
-        return const Center(child: Text('팀매칭 화면')); // 플레이스홀더
+        return const Center(child: Text('팀매칭 화면'));
       case 3:
-        return const Center(child: Text('프로필 화면')); // 플레이스홀더
+        return const ProfilePage();
       default:
         return _buildHomeContent();
     }
   }
 
-  // 기존 홈 콘텐츠를 별도의 메서드로 분리
   Widget _buildHomeContent() {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // -----------------------------
-          // (1) 프로필 섹션
-          // -----------------------------
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            child: ElevatedButton(
+              onPressed: isSaving ? null : _saveNetworkImage,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFFF5733),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      '이미지 저장',
+                      style: GoogleFonts.notoSansKr(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+            ),
+          ),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(
@@ -64,13 +200,12 @@ class _HomePageState extends State<HomePage> {
                 children: [
                   Row(
                     children: [
-                      // (A) 요가 캐릭터
                       Image.asset(
                         'assets/images/profile.png',
-                        width: 80, // 고정 크기 설정
-                        height: 80, // 고정 크기 설정
-                        fit: BoxFit.contain, // 이미지 잘림 방지
-                        filterQuality: FilterQuality.high, // 고품질 필터링
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.contain,
+                        filterQuality: FilterQuality.high,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
                             width: 80,
@@ -85,13 +220,10 @@ class _HomePageState extends State<HomePage> {
                         },
                       ),
                       const SizedBox(width: 16),
-
-                      // (B) 텍스트 영역
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // 이름
                             Text(
                               '김조형',
                               style: GoogleFonts.notoSansKr(
@@ -101,8 +233,6 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             const SizedBox(height: 4),
-
-                            // (1) 학교
                             Text(
                               '홍익대학교 디자인과 재학 중',
                               style: GoogleFonts.notoSansKr(
@@ -111,8 +241,6 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             const SizedBox(height: 4),
-
-                            // (2) 브랜딩/UXUI 버튼 (더 아래쪽)
                             Row(
                               children: [
                                 ElevatedButton(
@@ -158,8 +286,6 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ],
                             ),
-
-                            // (3) 팀플 경험 5회...
                             Text(
                               '팀플 경험 5회 • 진행 중 프로젝트 3개',
                               style: GoogleFonts.notoSansKr(
@@ -173,8 +299,6 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-
-                  // (C) QR코드 (우측 상단)
                   Positioned(
                     top: 0,
                     right: 0,
@@ -198,10 +322,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 24),
-
-          // -----------------------------
-          // (2) 오늘의 할 일
-          // -----------------------------
           Text(
             '오늘의 할 일',
             style: GoogleFonts.notoSansKr(
@@ -218,7 +338,6 @@ class _HomePageState extends State<HomePage> {
             color: Colors.white,
             child: Column(
               children: [
-                // 체크박스 1
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16.0,
@@ -227,14 +346,12 @@ class _HomePageState extends State<HomePage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // 텍스트
                       Expanded(
                         child: Text(
                           '지표 엑셀에 정리하기',
                           style: GoogleFonts.notoSansKr(fontSize: 16),
                         ),
                       ),
-                      // 체크박스
                       Checkbox(
                         value: isTask1Checked,
                         onChanged: (bool? newValue) {
@@ -243,20 +360,18 @@ class _HomePageState extends State<HomePage> {
                           });
                         },
                         shape: const CircleBorder(),
-                        activeColor: const Color(0xFFFF5733), // 체크 시 색상
-                        checkColor: Colors.white, // 체크 표시 색상
+                        activeColor: const Color(0xFFFF5733),
+                        checkColor: Colors.white,
                         side: const BorderSide(
-                          color: Colors.grey, // 체크박스 테두리 색상
+                          color: Colors.grey,
                           width: 1.5,
                         ),
-                        visualDensity: VisualDensity.compact, // 크기 조정
-                        materialTapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap, // 탭 영역 축소
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ],
                   ),
                 ),
-                // 점선
                 const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: DottedLine(
@@ -267,7 +382,6 @@ class _HomePageState extends State<HomePage> {
                     dashGapLength: 4.0,
                   ),
                 ),
-                // 체크박스 2
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16.0,
@@ -276,14 +390,12 @@ class _HomePageState extends State<HomePage> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // 텍스트
                       Expanded(
                         child: Text(
                           '자료 조사 및 분석하기',
                           style: GoogleFonts.notoSansKr(fontSize: 16),
                         ),
                       ),
-                      // 체크박스
                       Checkbox(
                         value: isTask2Checked,
                         onChanged: (bool? newValue) {
@@ -292,15 +404,14 @@ class _HomePageState extends State<HomePage> {
                           });
                         },
                         shape: const CircleBorder(),
-                        activeColor: const Color(0xFFFF5733), // 체크 시 색상
-                        checkColor: Colors.white, // 체크 표시 색상
+                        activeColor: const Color(0xFFFF5733),
+                        checkColor: Colors.white,
                         side: const BorderSide(
-                          color: Colors.grey, // 체크박스 테두리 색상
+                          color: Colors.grey,
                           width: 1.5,
                         ),
-                        visualDensity: VisualDensity.compact, // 크기 조정
-                        materialTapTargetSize:
-                            MaterialTapTargetSize.shrinkWrap, // 탭 영역 축소
+                        visualDensity: VisualDensity.compact,
+                        materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                     ],
                   ),
@@ -308,12 +419,7 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-
           const SizedBox(height: 24),
-
-          // -----------------------------
-          // (3) 진행중인 프로젝트
-          // -----------------------------
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -339,10 +445,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 24),
-
-          // -----------------------------
-          // (4) 모집 마감 임박 프로젝트
-          // -----------------------------
           Text(
             '모집 마감 임박 프로젝트 🔥',
             style: GoogleFonts.notoSansKr(
@@ -351,7 +453,6 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           const SizedBox(height: 8),
-          // ListView를 Column으로 대체하여 중첩 스크롤 문제 해결
           Column(
             children: [
               _buildRecruitmentCard(
@@ -380,7 +481,7 @@ class _HomePageState extends State<HomePage> {
                 comments: 19,
                 date: '25.03.12',
               ),
-              const SizedBox(height: 80), // 네비게이션 바와의 간격 확보
+              const SizedBox(height: 80),
             ],
           ),
         ],
@@ -391,7 +492,7 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[100], // 배경색 설정
+      backgroundColor: Colors.grey[100],
       body: _buildBody(),
       bottomNavigationBar: BottomNavigation(
         currentIndex: _currentIndex,
@@ -411,7 +512,6 @@ class _HomePageState extends State<HomePage> {
         padding: const EdgeInsets.all(16.0),
         child: Row(
           children: [
-            // 왼쪽 아이콘
             Container(
               width: 40,
               height: 40,
@@ -422,7 +522,6 @@ class _HomePageState extends State<HomePage> {
               child: const Icon(Icons.group, color: Colors.white),
             ),
             const SizedBox(width: 12),
-            // 중앙 텍스트
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -443,7 +542,6 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  // 팀원 아이콘들
                   Row(
                     children: [
                       _buildMemberIcon(),
@@ -456,7 +554,6 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            // 오른쪽 D-07
             Container(
               width: 44,
               height: 44,
@@ -524,7 +621,6 @@ class _HomePageState extends State<HomePage> {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 이미지 + "BEST" 라벨
                   Stack(
                     children: [
                       ClipRRect(
@@ -548,7 +644,6 @@ class _HomePageState extends State<HomePage> {
                           },
                         ),
                       ),
-                      // "BEST" 라벨 (좌측 상단)
                       Positioned(
                         left: 4,
                         top: 4,
@@ -581,13 +676,10 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                   const SizedBox(width: 12),
-
-                  // 텍스트 + 태그/조회수/댓글/날짜
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 제목
                         Text(
                           title,
                           style: GoogleFonts.notoSansKr(
@@ -599,10 +691,8 @@ class _HomePageState extends State<HomePage> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 2),
-                        // 태그 + 조회수 + 댓글 + 날짜
                         Row(
                           children: [
-                            // 태그
                             Text(
                               tag,
                               style: GoogleFonts.notoSansKr(
@@ -612,7 +702,6 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            // 조회수 (눈 이모지)
                             Row(
                               children: [
                                 Icon(
@@ -631,7 +720,6 @@ class _HomePageState extends State<HomePage> {
                               ],
                             ),
                             const SizedBox(width: 8),
-                            // 댓글
                             Row(
                               children: [
                                 Icon(
@@ -649,8 +737,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ],
                             ),
-                            const Spacer(), // 날짜를 우측으로 밀어냄
-                            // 날짜
+                            const Spacer(),
                             Text(
                               date,
                               style: GoogleFonts.notoSansKr(
