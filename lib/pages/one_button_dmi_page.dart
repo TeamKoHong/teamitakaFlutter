@@ -27,63 +27,25 @@ class _OneButtonDMIPageState extends State<OneButtonDMIPage> {
         final sdkVersion = androidInfo.version.sdkInt;
 
         if (sdkVersion >= 33) {
-          // Android 13 이상
           final status = await Permission.photos.request();
-          if (status.isGranted) {
-            print("Android 13+: Photos permission granted");
-            return true;
-          }
-          if (status.isPermanentlyDenied) {
-            print("Android 13+: Photos permission permanently denied");
-            await openAppSettings();
-            return false;
-          }
-          print("Android 13+: Photos permission denied");
-          return false;
+          return status.isGranted;
         } else {
-          // Android 12 이하
           final storageStatus = await Permission.storage.request();
-          if (storageStatus.isGranted) {
-            print("Android 12-: Storage permission granted");
-            return true;
-          }
-          if (storageStatus.isPermanentlyDenied) {
-            print("Android 12-: Storage permission permanently denied");
-            await openAppSettings();
-            return false;
-          }
-          print("Android 12-: Storage permission denied");
-          return false;
+          return storageStatus.isGranted;
         }
       } else if (Platform.isIOS) {
         final permissionStatus = await PhotoManager.requestPermissionExtend();
-        print("iOS: PhotoManager permission status: $permissionStatus");
-        if (permissionStatus == PermissionState.authorized) {
-          print("iOS: PhotoManager permission granted");
-          return true;
-        }
-        if (permissionStatus == PermissionState.limited) {
-          print("iOS: PhotoManager permission limited");
-          return true; // 제한된 접근도 허용
-        }
-        if (permissionStatus == PermissionState.denied) {
-          print("iOS: PhotoManager permission denied");
-          await openAppSettings();
-          return false;
-        }
-        print("iOS: PhotoManager permission status unknown");
-        return false;
+        return permissionStatus == PermissionState.authorized ||
+            permissionStatus == PermissionState.limited;
       }
       return false;
     } catch (e) {
-      print("Permission request error: $e");
       return false;
     }
   }
 
   Future<void> _captureAndSave() async {
     setState(() => isSaving = true);
-
     try {
       final hasPermission = await _requestPermission();
       if (!hasPermission) {
@@ -109,15 +71,11 @@ class _OneButtonDMIPageState extends State<OneButtonDMIPage> {
         title: filename,
       );
 
-      if (result != null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지가 갤러리에 저장되었습니다!')),
-        );
-      } else {
-        throw Exception("PhotoManager failed to save image");
-      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(result != null ? '이미지가 갤러리에 저장되었습니다!' : '이미지 저장 실패')),
+      );
     } catch (e) {
-      print("Capture and save error: $e");
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('이미지 저장 실패: $e')),
       );
@@ -129,15 +87,13 @@ class _OneButtonDMIPageState extends State<OneButtonDMIPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFF5733),
+      backgroundColor: const Color(0xFFF76241), // 정확한 디자인 색상
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
       ),
       body: SafeArea(
@@ -145,7 +101,7 @@ class _OneButtonDMIPageState extends State<OneButtonDMIPage> {
           children: [
             const SizedBox(height: 16),
             Text(
-              '티미가 단것을 축하해!!',
+              '티미가 된 것을 축하해!',
               style: GoogleFonts.notoSansKr(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -158,26 +114,31 @@ class _OneButtonDMIPageState extends State<OneButtonDMIPage> {
                 child: RepaintBoundary(
                   key: _repaintBoundaryKey,
                   child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0),
+                    margin: const EdgeInsets.symmetric(horizontal: 24.0),
                     padding: const EdgeInsets.all(24.0),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16.0),
+                      borderRadius: BorderRadius.circular(24.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                        ),
+                      ],
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '원버튼DMI',
+                          '완벽티미',
                           style: GoogleFonts.notoSansKr(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black,
-                          ),
+                              fontSize: 26,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFFF76241)),
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '빠른건 강한 얍배를 준비 되어 있어',
+                          '빠트린거 없이 완벽해! 준비 되어 있어!',
                           style: GoogleFonts.notoSansKr(
                             fontSize: 16,
                             color: Colors.grey[600],
@@ -185,154 +146,63 @@ class _OneButtonDMIPageState extends State<OneButtonDMIPage> {
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 24),
-                        Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Container(
-                              width: 120,
-                              height: 120,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: const Color(0xFFFF5733),
-                                border:
-                                    Border.all(color: Colors.black, width: 2),
-                              ),
-                              child: const Icon(
-                                Icons.person,
-                                size: 80,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Positioned(
-                              top: 0,
-                              left: 20,
-                              child: Container(
-                                width: 20,
-                                height: 20,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              top: 10,
-                              right: 20,
-                              child: Container(
-                                width: 15,
-                                height: 15,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 10,
-                              left: 10,
-                              child: Container(
-                                width: 15,
-                                height: 15,
-                                decoration: const BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                          ],
+                        Image.asset(
+                          'assets/images/perfect.png',
+                          width: 150,
+                          height: 150,
                         ),
-                        const SizedBox(height: 24),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(Icons.lightbulb_outline,
-                                size: 24, color: Colors.black),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '디 나온 발병이 있울거야!\n이유를 분석하겠자',
-                                style: GoogleFonts.notoSansKr(
-                                  fontSize: 16,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Icon(Icons.search,
-                                size: 24, color: Colors.black),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                '이걸 어떻게 팀원들에게 설멍해줄까?',
-                                style: GoogleFonts.notoSansKr(
-                                  fontSize: 16,
-                                  color: Colors.black,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        const Divider(height: 32),
+                        Row(children: [
+                          Text('💡', style: TextStyle(fontSize: 18)),
+                          const SizedBox(width: 8),
+                          Text('더 나은 방법이 있을거야!',
+                              style: GoogleFonts.notoSansKr(fontSize: 16)),
+                        ]),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          Text('🔍', style: TextStyle(fontSize: 18)),
+                          const SizedBox(width: 8),
+                          Text('이유를 분석해보자',
+                              style: GoogleFonts.notoSansKr(fontSize: 16)),
+                        ]),
+                        const SizedBox(height: 12),
+                        Row(children: [
+                          Text('📣', style: TextStyle(fontSize: 18)),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text('이걸 어떻게 팀원들에게 설명해줄까?',
+                                style: GoogleFonts.notoSansKr(fontSize: 16)),
+                          ),
+                        ]),
                       ],
                     ),
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                    ),
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: ElevatedButton.icon(
+                onPressed: isSaving ? null : _captureAndSave,
+                icon: Icon(Icons.download, color: Colors.black, size: 26),
+                label: Text('이미지 저장',
+                    style: GoogleFonts.notoSansKr(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30.0),
                   ),
-                ],
+                  minimumSize: const Size(double.infinity, 56),
+                ),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 32),
           ],
-        ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: ElevatedButton(
-          onPressed: isSaving ? null : _captureAndSave,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: const Color(0xFFFF5733),
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
-            ),
-          ),
-          child: isSaving
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    color: Color(0xFFFF5733),
-                    strokeWidth: 2,
-                  ),
-                )
-              : Text(
-                  '시작하기',
-                  style: GoogleFonts.notoSansKr(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFFFF5733),
-                  ),
-                ),
         ),
       ),
     );

@@ -37,7 +37,6 @@ class _HomePageState extends State<HomePage> {
         final sdkVersion = androidInfo.version.sdkInt;
 
         if (sdkVersion >= 33) {
-          // Android 13 이상
           final status = await Permission.photos.request();
           if (status.isGranted) {
             print("Android 13+: Photos permission granted");
@@ -51,7 +50,6 @@ class _HomePageState extends State<HomePage> {
           print("Android 13+: Photos permission denied");
           return false;
         } else {
-          // Android 12 이하
           final storageStatus = await Permission.storage.request();
           if (storageStatus.isGranted) {
             print("Android 12-: Storage permission granted");
@@ -74,7 +72,7 @@ class _HomePageState extends State<HomePage> {
         }
         if (permissionStatus == PermissionState.limited) {
           print("iOS: PhotoManager permission limited");
-          return true; // 제한된 접근도 허용
+          return true;
         }
         if (permissionStatus == PermissionState.denied) {
           print("iOS: PhotoManager permission denied");
@@ -157,37 +155,6 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16.0),
-            child: ElevatedButton(
-              onPressed: isSaving ? null : _saveNetworkImage,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFF5733),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Text(
-                      '이미지 저장',
-                      style: GoogleFonts.notoSansKr(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-            ),
-          ),
           Card(
             elevation: 2,
             shape: RoundedRectangleBorder(

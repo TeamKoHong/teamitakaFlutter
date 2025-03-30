@@ -39,7 +39,7 @@ class ProfilePage extends StatelessWidget {
                 ),
               ),
               child: Text(
-                '원버튼DMI 시작하기',
+                '나의 협업 성향 확인하기',
                 style: GoogleFonts.notoSansKr(
                   color: Colors.white,
                   fontSize: 16,
