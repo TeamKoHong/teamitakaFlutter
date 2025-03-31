@@ -2,9 +2,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// lib/widgets/header.dart
 class Header extends StatelessWidget implements PreferredSizeWidget {
-  const Header({super.key});
+  const Header({super.key}); // title 파라미터 제거
 
   @override
   Widget build(BuildContext context) {

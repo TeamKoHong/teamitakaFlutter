@@ -1,3 +1,4 @@
+// lib/pages/home_page.dart
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -6,8 +7,11 @@ import 'package:http/http.dart' as http;
 import 'package:photo_manager/photo_manager.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
-import 'package:teamitaka_flutter/profile_page.dart';
-import 'widgets/bottom_navigation.dart';
+import 'package:teamitaka_flutter/pages/match_page.dart';
+import 'package:teamitaka_flutter/pages/profile_info_page.dart';
+import 'package:teamitaka_flutter/pages/projects_page.dart';
+import 'package:teamitaka_flutter/widgets/bottom_navigation.dart';
+import 'package:teamitaka_flutter/widgets/header.dart';
 import 'dart:io';
 
 class HomePage extends StatefulWidget {
@@ -20,14 +24,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   bool isTask1Checked = false;
   bool isTask2Checked = false;
-  int _currentIndex = 0;
   bool isSaving = false;
-
-  void _onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
-  }
 
   Future<bool> _requestPermission() async {
     try {
@@ -113,7 +110,6 @@ class _HomePageState extends State<HomePage> {
           'network_image_${DateTime.now().millisecondsSinceEpoch}.jpg';
       final result = await PhotoManager.editor.saveImage(
         imageBytes,
-        title: filename,
         filename: filename,
       );
 
@@ -131,21 +127,6 @@ class _HomePageState extends State<HomePage> {
       );
     } finally {
       setState(() => isSaving = false);
-    }
-  }
-
-  Widget _buildBody() {
-    switch (_currentIndex) {
-      case 0:
-        return _buildHomeContent();
-      case 1:
-        return const Center(child: Text('프로젝트 관리 화면'));
-      case 2:
-        return const Center(child: Text('팀매칭 화면'));
-      case 3:
-        return const ProfilePage();
-      default:
-        return _buildHomeContent();
     }
   }
 
@@ -397,6 +378,25 @@ class _HomePageState extends State<HomePage> {
                   fontWeight: FontWeight.bold,
                 ),
               ),
+              TextButton(
+                onPressed: _saveNetworkImage,
+                child: isSaving
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Color(0xFFFF5733),
+                        ),
+                      )
+                    : Text(
+                        '이미지 저장',
+                        style: GoogleFonts.notoSansKr(
+                          fontSize: 14,
+                          color: const Color(0xFFFF5733),
+                        ),
+                      ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -460,10 +460,34 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      body: _buildBody(),
+      appBar: const Header(), // title 파라미터 제거
+      body: _buildHomeContent(),
       bottomNavigationBar: BottomNavigation(
-        currentIndex: _currentIndex,
-        onTap: _onTabTapped,
+        currentIndex: 0,
+        onTap: (index) {
+          if (index == 0) return; // 현재 페이지 (홈)일 경우 이동하지 않음
+          switch (index) {
+            case 1: // 프로젝트 관리
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const ProjectsPage()),
+              );
+              break;
+            case 2: // 팀매칭
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const MatchPage()),
+              );
+              break;
+            case 3: // 프로필
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                    builder: (context) => const ProfileInfoPage()),
+              );
+              break;
+          }
+        },
       ),
     );
   }

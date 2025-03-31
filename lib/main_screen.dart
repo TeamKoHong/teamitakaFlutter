@@ -1,7 +1,7 @@
 // lib/main_screen.dart
 import 'package:flutter/material.dart';
 import 'package:teamitaka_flutter/widgets/header.dart';
-import 'home_page.dart';
+import 'pages/home_page.dart';
 
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
